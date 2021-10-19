@@ -3,16 +3,16 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
+#include <math.h>
 
 #define BUFFER_SIZE 200
 #define HEADER_SIZE 30
-struct Point_ {
-    char* t;
-    float open;
-    float high;
-    float low;
-    float close;
-    unsigned long volume;
+
+struct Stack_ {
+    struct timeval *time_array;
+    int rows, columns; 
+    char** headers;
+    double** points; 
 };
 static void free_char_array(char** arr, int size){
     for(size_t i = 0; i < size; i++){
@@ -26,28 +26,24 @@ void removeNewLineChar(char *ptr){
     }
     *ptr = '\0';
 }
-static void handle_row(char* buffer, const char* const delim, struct timeval* tv, float* step, int cols){
-    char* token;
-    
-    token = strtok(buffer, delim);
-    while(token){
-        printf("%s \n", token);
-        token = strtok(NULL,",");
-    }
+int file_size(FILE *fp){
+    int start = ftell(fp);
+    fseek(fp, 0L, SEEK_END);
+    int size = ftell(fp);
+    fseek(fp,start, SEEK_SET);
+    return size;
 }
 int read_csv(char* file, const char* const delim){
-    FILE* fp;
-    char* buffer;
+    FILE* fp = NULL;
+    char* buffer = NULL;
+    double** points = NULL;
     int columns = 0; 
     int rows = 0;
+    struct Stack_ Stack;
     
     char **headers = (char**) calloc(1, sizeof(char*));
-    float **arr = (float**) calloc(1, sizeof(float*));
-    struct timeval *tr = (struct timeval*)malloc(1*sizeof(struct timeval));
-    
-    if(headers == NULL || arr == NULL || tr == NULL){
-        fprintf(stderr, "Error: Error allocating memory");
-    }
+    //struct timeval *tr = (struct timeval*)malloc(1*sizeof(struct timeval));
+ 
     if((fp = fopen(file, "r")) == NULL){
         fprintf(stderr, "Error: File does not exist");
         return 0;
@@ -56,6 +52,7 @@ int read_csv(char* file, const char* const delim){
         fprintf(stderr, "Error: Error allocating buffer");
         return 0;
     }
+    
     fgets(buffer, BUFFER_SIZE, fp);
     removeNewLineChar(buffer);
     
@@ -68,17 +65,48 @@ int read_csv(char* file, const char* const delim){
         columns++;
         token = strtok(NULL, ",");
     }
+    
+    Stack.headers = headers;
+    int fileSize = file_size(fp);
+    int linesInt = (int) fileSize / ((columns-1)*sizeof(double)+20*sizeof(char));
+    if(!(points = calloc(linesInt, sizeof *points))){
+        fprintf(stderr, "Error: Error allocating csv to memory");
+        return 0;
+    }
     while(feof(fp) != true){
-        arr = (float**) realloc(arr, (rows + 1)*sizeof(float*));
-        tr = (struct timeval*) realloc(tr, (rows + 1)*sizeof(struct timeval));
-        arr[rows] = (float*)calloc(columns, sizeof(float));
-        
         fgets(buffer, BUFFER_SIZE, fp);
-        handle_row(buffer, delim, &tr[rows], arr[rows], columns);
+        removeNewLineChar(buffer);
+        points[rows] = (double*)malloc((columns-1) * sizeof(double));
+        
+        char* token = strtok(buffer, delim);
+        token = strtok(NULL,",");
+        
+        int idx = 0;
+        while(token){
+            points[rows][idx] = atof(token);
+            token = strtok(NULL,",");
+            idx++;   
+        }
         rows++;
         
+        if(rows == linesInt){
+            double** temp = realloc(points, (linesInt + 100)*sizeof(*points));
+            if(!temp){
+                fprintf(stderr,"Error: Error reallocting memory");
+                return 0;
+            }
+            points = temp;
+            linesInt = linesInt + 100;
+            
+        }
     }
-
+    
+    if(fp) fclose(fp);
+    for(int k = 0; k < linesInt; k++){
+        free(points[k]);
+    }
+    free(points);
+    free(buffer);
     free_char_array(headers, columns);
     return 1;
 }
