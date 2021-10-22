@@ -28,11 +28,12 @@ void remove_NL_Char(char *ptr){
     *ptr = '\0';
 }
 struct timeval *string_to_timeval(char *time){
+    struct timeval *tv = malloc(sizeof(struct timeval));
     char *tv_sec = malloc(END_DT*sizeof(char));
+    char *tv_usec;
     tv_sec[END_DT] = '\0';
     strncpy(tv_sec, time, END_DT);
     
-    struct timeval *tv = malloc(sizeof(struct timeval));
     time_t result = 0;
     int year, month, day, hour, min, sec;
 
@@ -44,16 +45,15 @@ struct timeval *string_to_timeval(char *time){
         tm_mid.tm_hour = hour;
         tm_mid.tm_min = min;
         tm_mid.tm_sec = sec;
-        printf("%i", month);
         
         if((result = mktime(&tm_mid)) == (time_t)-1){
-            fprintf(stderr, "Failed to convert datetime to tim_t \n");
-            return NULL;
+            fprintf(stderr, "Failed to convert datetime to time_t \n");
+            goto fail;
         }
     }
     else{
-        printf("Failed to parse datetime");
-        return NULL;
+        fprintf(stderr, "Failed to parse datetime to time_t \n");
+        goto fail;
     }
     tv->tv_sec = result;
     int idx = 0;
@@ -61,10 +61,11 @@ struct timeval *string_to_timeval(char *time){
         idx ++;
     }
     if(!idx){
+        free(tv_sec);
         return tv;
     }
 
-    char *tv_usec = malloc((idx)*sizeof(char));
+    tv_usec = malloc((idx)*sizeof(char));
     tv_usec[idx] = '\0';
     strncpy(tv_usec, time+END_DT, idx);
     
@@ -73,9 +74,15 @@ struct timeval *string_to_timeval(char *time){
     
     free(tv_sec);
     free(tv_usec);
-   
-    return tv;
     
+    if(tv){return tv;}
+    else{goto fail;}
+fail: 
+    free(tv_sec);
+    free(tv_usec);
+    free(tv);
+    fprintf(stderr, "Function failed: string_to_timeval\n");
+    return NULL;
 }
 int file_size(FILE *fp){
     int start = ftell(fp);
