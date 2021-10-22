@@ -7,6 +7,7 @@
 
 #define BUFFER_SIZE 200
 #define HEADER_SIZE 30
+#define END_DT 19
 
 struct Stack_ {
     struct timeval *time_array;
@@ -20,11 +21,61 @@ static void free_char_array(char** arr, int size){
     }
     free(arr);
 }
-void removeNewLineChar(char *ptr){
+void remove_NL_Char(char *ptr){
     while((ptr != NULL) && (*ptr != '\n')){
         ++ptr;
     }
     *ptr = '\0';
+}
+struct timeval *string_to_timeval(char *time){
+    char *tv_sec = malloc(END_DT*sizeof(char));
+    tv_sec[END_DT] = '\0';
+    strncpy(tv_sec, time, END_DT);
+    
+    struct timeval *tv = malloc(sizeof(struct timeval));
+    time_t result = 0;
+    int year, month, day, hour, min, sec;
+
+    if(sscanf(tv_sec, "%d-%d-%dT%d:%d:%d", &year,&month,&day,&hour,&min,&sec) == 6){
+        struct tm tm_mid = {0};
+        tm_mid.tm_year = year - 1900;
+        tm_mid.tm_mon = month - 1;
+        tm_mid.tm_mday = day;
+        tm_mid.tm_hour = hour;
+        tm_mid.tm_min = min;
+        tm_mid.tm_sec = sec;
+        printf("%i", month);
+        
+        if((result = mktime(&tm_mid)) == (time_t)-1){
+            fprintf(stderr, "Failed to convert datetime to tim_t \n");
+            return NULL;
+        }
+    }
+    else{
+        printf("Failed to parse datetime");
+        return NULL;
+    }
+    tv->tv_sec = result;
+    int idx = 0;
+    while(time[END_DT + idx] != '\0'){
+        idx ++;
+    }
+    if(!idx){
+        return tv;
+    }
+
+    char *tv_usec = malloc((idx)*sizeof(char));
+    tv_usec[idx] = '\0';
+    strncpy(tv_usec, time+END_DT, idx);
+    
+    double usec = atof(tv_usec) * 1000000;    
+    tv->tv_usec = usec;
+    
+    free(tv_sec);
+    free(tv_usec);
+   
+    return tv;
+    
 }
 int file_size(FILE *fp){
     int start = ftell(fp);
@@ -54,7 +105,7 @@ int read_csv(char* file, const char* const delim){
     }
     
     fgets(buffer, BUFFER_SIZE, fp);
-    removeNewLineChar(buffer);
+    remove_NL_Char(buffer);
     
     char *token = strtok(buffer, delim);
     while (token) {
@@ -75,7 +126,7 @@ int read_csv(char* file, const char* const delim){
     }
     while(feof(fp) != true){
         fgets(buffer, BUFFER_SIZE, fp);
-        removeNewLineChar(buffer);
+        remove_NL_Char(buffer);
         points[rows] = (double*)malloc((columns-1) * sizeof(double));
         
         char* token = strtok(buffer, delim);
@@ -112,8 +163,32 @@ int read_csv(char* file, const char* const delim){
 }
 
 int main() {
+
+    char *time_string = "2021-08-21T13:45:40.105";
+    struct timeval *tm = NULL;
+    tm = string_to_timeval(time_string);
+    
+    if(tm){
+        char mytime[20];                                         
+        printf("%ld \n",(tm->tv_sec)); 
+    }
+    time_t mid = tm->tv_sec;
+    printf("%s", ctime(&mid));
+    
+    
+    
+    /*
+    
 	char* path = "test.csv";
     const char* const s = ",";
+    clock_t start, end;
+    double cpu_time_used;
+     
+    start = clock();
     read_csv(path, s);
+    end = clock();
+    cpu_time_used = ((double) (end-start)) / CLOCKS_PER_SEC;
+    printf("Read csv took %f seconds to execute \n", cpu_time_used);
+    */
 	return 0;
 }
