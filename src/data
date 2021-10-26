@@ -1,0 +1,5 @@
+#ifndef _data_h
+#define _data_h
+
+struct Stack_ read_csv(char* file, const char* const delim);
+#endif
