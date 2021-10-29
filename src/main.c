@@ -10,25 +10,10 @@
 
 
 int main() {
-    
 
-    //char a[20];
-    //strcpy(a,test());
-    //printf("%s \n", a);
     
-    //printf(a);
-    
-    char *time_string = "2021-08-21T14:45:40.105";
-    printf("%s, before timeval_to_string, %p \n",time_string, &time_string);
-    struct timeval tm;
-    tm = string_to_timeval(time_string);
-     
-    char new_time[20];
-    strcpy(new_time,timeval_to_string(tm)); 
-    printf("%s, after timeval_to_string, %p \n",new_time, &new_time);
-    
-    /*
 	char* path = "../data/test.csv";
+    char freq[3] = "S5";
     const char* const s = ",";
     clock_t start, end;
     double cpu_time_used;
@@ -36,11 +21,28 @@ int main() {
     start = clock();
     struct Stack_ stack;
     stack = read_csv(path, s);
+    if(stack.init != 1){
+         fprintf(stderr, "Failed to initalize stack\n");
+         return 0;
+    }
     end = clock();
     
     cpu_time_used = ((double) (end-start)) / CLOCKS_PER_SEC;
-    //printf("\n Read csv took %f seconds to execute \n", cpu_time_used);
-
+    printf("\n Read csv took %f seconds to execute \n", cpu_time_used);
+    
+    //print_stack(stack);
+    //test();
+    resample_stack(stack, freq);
+    
+    /*
+    char new_time[20];
+    struct timeval tv;
+    tv.tv_sec = 1629571806;
+    tv.tv_usec = 0;
+    strcpy(new_time,timeval_to_string(tv));
+    printf("%s \n", new_time);
     */
+    
+    free_stack(stack);
     return 0;
 }

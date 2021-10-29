@@ -3,11 +3,14 @@
 
 struct Stack_ {
     int init;
-    struct timeval *time_array;
+    struct timeval *timeArray;
     int rows, columns; 
     char** headers;
     double** points; 
 };
-
+void test();
+void print_stack(struct Stack_ Stack);
+void resample_stack(struct Stack_ stack, char freq[]);
+void free_stack(struct Stack_ Stack);
 struct Stack_ read_csv(char* file, const char* const delim);
 #endif

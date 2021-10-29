@@ -7,16 +7,44 @@
 #include "data.h"
 
 #define END_DT 19
+#define USEC_ERROR .000001
 
+struct timeval double_to_tv(double tvDouble){
+    int tv_sec = (int) tvDouble;
+    double tv_usecD = tvDouble - tv_sec;
+    
+    struct timeval tv;
+    tv.tv_sec = tv_sec;
+    if(tv_usecD > USEC_ERROR){
+        int tv_usec = (int) tv_usecD * 1000000;
+        tv.tv_usec = tv_usec;
+    }
+    else{
+        tv.tv_usec = 0;
+    }
+    return tv;
+}
+
+double timeval_to_double(struct timeval tv){
+    double ret; 
+    int tv_sec = tv.tv_sec;
+    int tv_usec = tv.tv_usec;
+    
+    float usec = (float) tv_usec / 1000000;
+    ret = (double) tv_sec + usec;
+    
+    return ret;
+}
 char *timeval_to_string(struct timeval tv){
     char timeString[30] = {};
-    char *time = timeString;
+    char *time = malloc(30*sizeof(char));
     
     time_t tv_sec = tv.tv_sec;
     int tv_usec = tv.tv_usec;
     char tv_usecStr[10];
     
     if(tv_sec == 0){
+        fprintf(stderr, "Error: Invalid timeval pased to timeval_to_string\n");
         return NULL;
     }
     
@@ -24,19 +52,19 @@ char *timeval_to_string(struct timeval tv){
     ts = *localtime(&tv_sec);
     strftime(timeString, sizeof(timeString),"%Y-%m-%dT%H:%M:%S", &ts);
     
+    
      if(tv_usec != 0){
         float usec = (float) tv_usec / 1000000;
 
         int len = snprintf(NULL, 0, "%f", usec);
         char *result = (char *)malloc(len + 1);
         snprintf(result, len + 1, "%f", usec);
-      
+        result++;
         strcat(timeString, result);
         free(result);
     }
     
-    printf("%s, inside timeval_to_string, %p \n",time, &time);
-    
+    strcpy(time,timeString);
     return time;
 }
 
