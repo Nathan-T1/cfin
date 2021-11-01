@@ -37,8 +37,10 @@ double timeval_to_double(struct timeval tv){
 }
 char *timeval_to_string(struct timeval tv){
     char timeString[30] = {};
-    char *time = malloc(30*sizeof(char));
-    
+    char *time;
+    if(!(time = malloc(30*sizeof(char)))){
+        return NULL;
+    }
     time_t tv_sec = tv.tv_sec;
     int tv_usec = tv.tv_usec;
     char tv_usecStr[10];

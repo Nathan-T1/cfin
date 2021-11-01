@@ -32,7 +32,8 @@ int main() {
     
     //print_stack(stack);
     //test();
-    resample_stack(stack, freq);
+    int j;
+    j = resample_stack(stack, freq);
     
     /*
     char new_time[20];
@@ -43,6 +44,6 @@ int main() {
     printf("%s \n", new_time);
     */
     
-    free_stack(stack);
+    //free_stack(stack);
     return 0;
 }

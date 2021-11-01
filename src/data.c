@@ -19,15 +19,7 @@ struct Stack_ {
     char** headers;
     double** points; 
 };
-void test(){
-    char new_time[20];
-    struct timeval tv;
-    tv.tv_sec = 1629571806;
-    tv.tv_usec = 0;
-    printf("%i, %i \n", tv.tv_sec, tv.tv_usec);
-    strcpy(new_time,timeval_to_string(tv));
-    printf("%s \n \n", new_time);
-}
+
 int resample_stack(struct Stack_ stack, char freq[]){
     double **rs_points = NULL;
     struct timeval *rs_timeArray = NULL;
@@ -53,16 +45,27 @@ int resample_stack(struct Stack_ stack, char freq[]){
         return 0;
     };
     
-    
-    
     rs_timeArray[0] = double_to_tv(t0);
     double timeMid;
     int idx = 0;
     while(idx < stack.rows){
         timeMid = timeval_to_double(stack.timeArray[idx]);
-        if(timeMid > t0 + h *(rs_rows)){
+        while(timeMid > t0 + h *(rs_rows)){
             rs_timeArray[rs_rows] = double_to_tv(t0 + h*rs_rows);
             rs_rows++;
+            if(rs_rows == row_guess){
+                fprintf(stderr, "Resample array approaching allocated size, resizing array \n");
+                row_guess = row_guess + 100;
+                double** temp = realloc(rs_points, (row_guess)*sizeof(*rs_points));
+                struct timeval *temp_tr = realloc(rs_timeArray, (row_guess)*sizeof(struct timeval));
+                
+                if(!temp){
+                    fprintf(stderr,"Error: Error reallocting memory");
+                    return 0;
+                }
+                rs_points = temp;
+                rs_timeArray = temp_tr;
+            }
         }
         idx++;
     }
@@ -76,11 +79,9 @@ int resample_stack(struct Stack_ stack, char freq[]){
         printf("%i, %i, %s \n", rs_timeArray[i].tv_sec, rs_timeArray[i].tv_usec, new_time);
         free(timePtr);
     }
- 
     
     printf("resample_stack success \n");
     return 1;
-    
 }
 struct Stack_ read_csv(char* file, const char* const delim){
     FILE* fp = NULL;
