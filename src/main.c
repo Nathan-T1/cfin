@@ -32,8 +32,11 @@ int main() {
     
     //print_stack(stack);
     //test();
-    int j;
-    j = resample_stack(stack, freq);
+    
+    stack = resample_stack(stack, freq);
+    if(stack.init == 1){
+        print_stack(stack);
+    }
     
     /*
     char new_time[20];

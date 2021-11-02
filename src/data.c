@@ -10,8 +10,6 @@
 #define BUFFER_SIZE 200
 #define HEADER_SIZE 30
 
-double get_h(char freq[]);
-
 struct Stack_ {
     int init;
     struct timeval *timeArray;
@@ -20,10 +18,14 @@ struct Stack_ {
     double** points; 
 };
 
-int resample_stack(struct Stack_ stack, char freq[]){
+double get_h(char freq[]);
+void print_stack(struct Stack_ Stack);
+
+struct Stack_ resample_stack(struct Stack_ stack, char freq[]){
     double **rs_points = NULL;
     struct timeval *rs_timeArray = NULL;
-    double h, initTime, t0;
+    double h, initTime, t0, bin_max;
+    struct Stack_ rs_stack;
     int rs_rows = 1;
     h = get_h(freq);
     
@@ -38,19 +40,19 @@ int resample_stack(struct Stack_ stack, char freq[]){
     int row_guess = (int) stack.rows / 2;
     if(!(rs_points = calloc(row_guess, sizeof *rs_points))){
         fprintf(stderr, "Error: Error allocating resample points to memory");
-        return 0;
+        return rs_stack;
     }
     if(!(rs_timeArray = calloc(row_guess,sizeof(struct timeval)))){
         fprintf(stderr, "Error allocating resample timeval array");
-        return 0;
+        return rs_stack;
     };
     
     rs_timeArray[0] = double_to_tv(t0);
     double timeMid;
-    int idx = 0;
+    int idx;
     while(idx < stack.rows){
         timeMid = timeval_to_double(stack.timeArray[idx]);
-        while(timeMid > t0 + h *(rs_rows)){
+        while(timeMid >= t0 + h *(rs_rows)){
             rs_timeArray[rs_rows] = double_to_tv(t0 + h*rs_rows);
             rs_rows++;
             if(rs_rows == row_guess){
@@ -61,7 +63,7 @@ int resample_stack(struct Stack_ stack, char freq[]){
                 
                 if(!temp){
                     fprintf(stderr,"Error: Error reallocting memory");
-                    return 0;
+                    return rs_stack;
                 }
                 rs_points = temp;
                 rs_timeArray = temp_tr;
@@ -69,19 +71,46 @@ int resample_stack(struct Stack_ stack, char freq[]){
         }
         idx++;
     }
-
-
-    for(int i = 0; i < rs_rows; i++){
-        char new_time[20];
-        char *timePtr = timeval_to_string(rs_timeArray[i]);
-        timeval_to_string(rs_timeArray[i]);
-        strcpy(new_time,timePtr);
-        printf("%i, %i, %s \n", rs_timeArray[i].tv_sec, rs_timeArray[i].tv_usec, new_time);
-        free(timePtr);
+    
+    idx = 0;
+    timeMid = timeval_to_double(stack.timeArray[idx]); 
+    for(int rs_idx = 0; rs_idx < rs_rows; rs_idx++){
+        bin_max = timeval_to_double(rs_timeArray[rs_idx]);
+        rs_points[rs_idx] = (double*)malloc((stack.columns-1) * sizeof(double));
+        int jdx = 0;
+        while(timeMid <= bin_max && idx < stack.rows){
+            if(jdx == 0){
+                rs_points[rs_idx][0] = stack.points[idx][0];
+                rs_points[rs_idx][1] = stack.points[idx][1];
+                rs_points[rs_idx][2] = stack.points[idx][2];
+                rs_points[rs_idx][4] = stack.points[idx][4];
+                jdx++;
+            }
+            if(stack.points[idx][1] > rs_points[rs_idx][1]){
+                rs_points[rs_idx][1] = stack.points[idx][1];
+            }
+            if(stack.points[idx][2] < rs_points[rs_idx][2]){
+                rs_points[rs_idx][2] = stack.points[idx][2];
+            }
+            rs_points[rs_idx][4] += stack.points[idx][4];
+            idx++;
+            timeMid = timeval_to_double(stack.timeArray[idx]); 
+        }
+        if(idx != 0){
+            rs_points[rs_idx][3] = stack.points[idx-1][3];
+        }
+        
+        printf("\n");
     }
+    rs_stack.headers = stack.headers;
+    rs_stack.points = rs_points;
+    rs_stack.columns = stack.columns;
+    rs_stack.rows = rs_rows;
+    rs_stack.timeArray = rs_timeArray;
+    rs_stack.init = 1;
     
     printf("resample_stack success \n");
-    return 1;
+    return rs_stack;
 }
 struct Stack_ read_csv(char* file, const char* const delim){
     FILE* fp = NULL;
@@ -247,9 +276,4 @@ double get_h(char freq[]){
     }
     return 0;
 }
-
-
-
-
-
 

@@ -10,7 +10,7 @@ struct Stack_ {
 };
 
 void print_stack(struct Stack_ Stack);
-int resample_stack(struct Stack_ stack, char freq[]);
+struct Stack_ resample_stack(struct Stack_ stack, char freq[]);
 void free_stack(struct Stack_ Stack);
 struct Stack_ read_csv(char* file, const char* const delim);
 #endif
