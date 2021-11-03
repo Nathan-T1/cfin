@@ -3,7 +3,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "utils.h"
 #include "data.h"
 
 #define END_DT 19
@@ -70,7 +69,7 @@ char *timeval_to_string(struct timeval tv){
     return time;
 }
 
-struct timeval string_to_timeval(char *time){
+struct timeval string_to_timeval(char *time, char* format, char* dt_order){
     struct timeval tv;
     char *tv_sec = malloc(END_DT*sizeof(char));
     char *tv_usec = malloc(sizeof(char));
@@ -79,29 +78,29 @@ struct timeval string_to_timeval(char *time){
     
     time_t result = 0;
     int year, month, day, hour, min, sec;
-
-    if(sscanf(tv_sec, "%d-%d-%dT%d:%d:%d", &year,&month,&day,&hour,&min,&sec) == 6){
-        struct tm tm_mid = {0};
-        tm_mid.tm_year = year - 1900;
-        tm_mid.tm_mon = month - 1;
-        tm_mid.tm_mday = day;
-        tm_mid.tm_hour = hour - 1;
-        tm_mid.tm_min = min;
-        tm_mid.tm_sec = sec;
-        
-        if((result = mktime(&tm_mid)) == (time_t)-1){
-            fprintf(stderr, "Failed to convert datetime to time_t \n");
-            goto fail;
-        }
+    if(strcmp(dt_order, "dmy") == 0){
+        sscanf(tv_sec, format, &day,&month,&year,&hour,&min,&sec);
     }
-    else{
-        fprintf(stderr, "Failed to parse datetime to time_t \n");
+    else if(strcmp(dt_order, "ymd") == 0){
+        sscanf(tv_sec, format, &year,&month,&day,&hour,&min,&sec);
+    }
+   
+    struct tm tm_mid = {0};
+    tm_mid.tm_year = year - 1900;
+    tm_mid.tm_mon = month - 1;
+    tm_mid.tm_mday = day;
+    tm_mid.tm_hour = hour - 1;
+    tm_mid.tm_min = min;
+    tm_mid.tm_sec = sec;
+    if((result = mktime(&tm_mid)) == (time_t)-1){
+        fprintf(stderr, "Failed to convert datetime to time_t \n");
         goto fail;
     }
+    
     tv.tv_sec = result;
     int idx = 0;
     while(time[END_DT + idx] != '\0'){
-        idx ++;
+        idx++;
     }
     if(!idx){
         free(tv_sec);
@@ -127,8 +126,6 @@ fail:
     fprintf(stderr, "Function failed: string_to_timeval\n");
     return tv;
 }
-
-
 void remove_NL_Char(char *ptr){
     while((ptr != NULL) && (*ptr != '\n')){
         ++ptr;
@@ -148,3 +145,5 @@ int file_size(FILE *fp){
     fseek(fp,start, SEEK_SET);
     return size;
 }
+
+

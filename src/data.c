@@ -31,6 +31,7 @@ struct Stack_ resample_stack(struct Stack_ stack, char freq[]){
     
     if(h == 0){
         fprintf(stderr, "Error: Failed to parse frequency");
+        return rs_stack;
     }
     
     initTime = timeval_to_double(stack.timeArray[0]);
@@ -112,7 +113,7 @@ struct Stack_ resample_stack(struct Stack_ stack, char freq[]){
     printf("resample_stack success \n");
     return rs_stack;
 }
-struct Stack_ read_csv(char* file, const char* const delim){
+struct Stack_ read_csv(char* file, const char* const delim, char* dt_format, char* dt_order){
     FILE* fp = NULL;
     char* buffer = NULL;
     double** points = NULL;
@@ -162,7 +163,7 @@ struct Stack_ read_csv(char* file, const char* const delim){
         
         char* token = strtok(buffer, delim);
         struct timeval tm;
-        tm = string_to_timeval(token);
+        tm = string_to_timeval(token, dt_format, dt_order);
         if(tm.tv_sec == 0){
             return Stack;
         }
@@ -200,6 +201,52 @@ struct Stack_ read_csv(char* file, const char* const delim){
     free(buffer);
     return Stack;
 }
+int write_csv(struct Stack_ Stack, char* file){
+    FILE* fptr = NULL;
+    int m = Stack.columns;
+    int n = Stack.rows;
+    if((fptr = fopen(file, "w")) == NULL){
+        fprintf(stderr, "Error: Error writing to file");
+        return 0;
+    }
+    char* headers = (char*) malloc(100 * sizeof(char));
+    int idx = 0;
+    int jdx = 0;
+    stpcpy(headers, Stack.headers[idx]);
+    strcat(headers, ",");
+    idx++;
+    while(idx < m){
+        strcat(headers, Stack.headers[idx]);
+        strcat(headers,",");
+        idx++;
+        if(idx == m){
+            strcat(headers, "\n");
+        }
+    }
+    fprintf(fptr, "%s", headers);
+    
+    idx = 0;
+    while(idx < n){
+        char time[30];
+        struct timeval tm = Stack.timeArray[idx];
+        strcpy(time,timeval_to_string(tm));
+        strcat(time,",");
+        fprintf(fptr, "%s", time);
+        
+        jdx = 0;
+        while(jdx < m - 1){
+            jdx++;
+            if(jdx < m - 1){
+                fprintf(fptr, "%f,", Stack.points[idx][jdx-1]); 
+            }
+            else{
+                fprintf(fptr, "%f\n", Stack.points[idx][jdx-1]); 
+            }
+        }    
+        idx++;
+    }
+    fclose(fptr);
+}
 void free_stack(struct Stack_ Stack){
     for(int k = 0; k < Stack.rows; k++){
         free(Stack.points[k]);
@@ -223,7 +270,7 @@ void print_stack(struct Stack_ Stack){
     printf(" \n");
     idx = 0;
     int jdx;
-    while(idx < n){
+    while(idx < 25){
         char new_time[20];
         struct timeval tm = Stack.timeArray[idx];
         strcpy(new_time,timeval_to_string(tm));
@@ -237,8 +284,39 @@ void print_stack(struct Stack_ Stack){
         printf(" \n");
         idx++;
     }
-    printf(" \n");
+    printf(" \n");   
+}
+double RSI(double* points, int length){
+    double sumUp, sumDown, diff;    
     
+    for(int i = 1; i < length; i++){
+        diff = points[i] - points[i-1];
+        if(diff > 0){
+            sumUp = sumUp + diff;
+        }
+        else{
+            sumDown = sumUp - diff;
+        }
+    }
+    if(sumUp == 0){return 0;};
+    if(sumDown == 0){return 100;};
+    
+    double rs = (sumUp/length)/(sumDown/length);
+    return 100-(100/(1+rs));
+}
+void Backtest_RSI(struct Stack_ stack, int length){
+    int n = stack.rows;
+    int idx = 0;
+    double* slice = malloc(length*sizeof(double));
+    
+    for(int i = 0; i < length+1; i++){
+        slice[i] = stack.points[idx*length + i][3];
+        printf("%f\n",stack.points[idx*length + i][3]);
+        
+    }
+    idx++;
+    double RSI_val = RSI(slice, length);
+    printf("RSI: %f",RSI_val);
     
 }
 double get_h(char freq[]){
