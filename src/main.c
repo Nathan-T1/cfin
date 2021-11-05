@@ -3,12 +3,10 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
-#include <math.h>
 
 #include "utils.h"
 #include "data.h"
-
-
+#include "calc.h"
 
 int main() {
 
@@ -35,18 +33,16 @@ int main() {
     cpu_time_used = ((double) (end-start)) / CLOCKS_PER_SEC;
     printf("\n Read csv took %f seconds to execute \n", cpu_time_used);
     
-    print_stack(stack);
-    Backtest_RSI(stack, 14);
-
-    //test();
     
-    //stack = resample_stack(stack, freq);
-    //if(stack.init == 1){
-    //    print_stack(stack);
-    //}
-    //char* test = "../data/test_write.csv";
-    //write_csv(stack,test);
-
+    struct Indicator_* ind = malloc(sizeof(struct Indicator_));
+    ind[0] = Backtest_RSI(stack, 14);
+    stack.indicators = ind;
+    stack.ind_count = 1;
+    //printf("%f",stack.indicators[0].vals[15]);
+    
+    print_stack(stack);
     //free_stack(stack);
+
+
     return 0;
 }

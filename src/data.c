@@ -10,12 +10,21 @@
 #define BUFFER_SIZE 200
 #define HEADER_SIZE 30
 
+struct Indicator_ {
+    char* name; 
+    int init;
+    int lookback;
+    double* vals;
+};
+
 struct Stack_ {
     int init;
+    int ind_count;
     struct timeval *timeArray;
     int rows, columns; 
     char** headers;
-    double** points; 
+    double** points;   
+    struct Indicator_* indicators;
 };
 
 double get_h(char freq[]);
@@ -121,6 +130,7 @@ struct Stack_ read_csv(char* file, const char* const delim, char* dt_format, cha
     int columns = 0; 
     int rows = 0;
     struct Stack_ Stack;
+    memset(&Stack, 0, sizeof(struct Stack_));
     
     char **headers = (char**) calloc(1, sizeof(char*));
  
@@ -247,6 +257,9 @@ int write_csv(struct Stack_ Stack, char* file){
     }
     fclose(fptr);
 }
+void free_indicator(struct Indicator_ indicator){
+    free(indicator.vals);
+}
 void free_stack(struct Stack_ Stack){
     for(int k = 0; k < Stack.rows; k++){
         free(Stack.points[k]);
@@ -255,6 +268,13 @@ void free_stack(struct Stack_ Stack){
     free(Stack.timeArray);
     free_char_array(Stack.headers, Stack.columns);
     
+    if(Stack.ind_count > 0){
+        for(int i = 0; i < Stack.ind_count; i++){
+            printf("%i \n",i);
+            free_indicator(Stack.indicators[i]);
+        }
+        free(Stack.indicators);
+    }
 }
 void print_stack(struct Stack_ Stack){
     int m = Stack.columns;
@@ -281,43 +301,15 @@ void print_stack(struct Stack_ Stack){
             printf("%f, ",Stack.points[idx][jdx]);
             jdx++;
         }
+        if(Stack.ind_count > 0){
+            for(int i = 0; i < Stack.ind_count; i++){
+                printf("%f ", Stack.indicators[i].vals[idx]);
+            }
+        }
         printf(" \n");
         idx++;
     }
     printf(" \n");   
-}
-double RSI(double* points, int length){
-    double sumUp, sumDown, diff;    
-    
-    for(int i = 1; i < length; i++){
-        diff = points[i] - points[i-1];
-        if(diff > 0){
-            sumUp = sumUp + diff;
-        }
-        else{
-            sumDown = sumUp - diff;
-        }
-    }
-    if(sumUp == 0){return 0;};
-    if(sumDown == 0){return 100;};
-    
-    double rs = (sumUp/length)/(sumDown/length);
-    return 100-(100/(1+rs));
-}
-void Backtest_RSI(struct Stack_ stack, int length){
-    int n = stack.rows;
-    int idx = 0;
-    double* slice = malloc(length*sizeof(double));
-    
-    for(int i = 0; i < length+1; i++){
-        slice[i] = stack.points[idx*length + i][3];
-        printf("%f\n",stack.points[idx*length + i][3]);
-        
-    }
-    idx++;
-    double RSI_val = RSI(slice, length);
-    printf("RSI: %f",RSI_val);
-    
 }
 double get_h(char freq[]){
     int ret;
