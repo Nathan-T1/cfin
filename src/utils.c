@@ -126,6 +126,11 @@ fail:
     fprintf(stderr, "Function failed: string_to_timeval\n");
     return tv;
 }
+void append(char* s, char c){
+        int len = strlen(s);
+        s[len] = c;
+        s[len+1] = '\0';
+}
 void remove_NL_Char(char *ptr){
     while((ptr != NULL) && (*ptr != '\n')){
         ++ptr;

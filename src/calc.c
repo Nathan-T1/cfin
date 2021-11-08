@@ -10,6 +10,20 @@
 double RSI(double* points, int length);
 struct Indicator_ Backtest_RSI(struct Stack_ stack, int length);
 
+double MS(double* points, int length){
+    double MA;
+    double sum = 0;
+    if(length == 0){
+        fprintf(stderr, "Error: Invalid Moving Average Length");
+        return MA;
+    }    
+    for(int i = 0; i < length; i++){
+        sum = sum + points[i];
+    }
+    MA = sum / length;
+    return MA;
+}
+
 double RSI(double* points, int length){
     double sumUp, sumDown, diff;    
     
@@ -42,7 +56,7 @@ struct Indicator_ Backtest_RSI(struct Stack_ stack, int lookback){
             //printf("%f\n",stack.points[i + offset][3]);
         }
         double RSI_val = RSI(slice, lookback);
-        vals[offset + lookback+1] = RSI_val;
+        vals[offset + lookback] = RSI_val;
         offset++; 
         free(slice);
     }

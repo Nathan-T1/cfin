@@ -9,9 +9,9 @@
 #include "calc.h"
 
 int main() {
-
     
 	char* path = "../data/EURUSD_Candlestick_1_M_BID_24.10.2021-29.10.2021.csv";
+    char* out_path = "../data/EURUSD_Candlestick_1_M_BID_24.10.2021-29.10.2021_out.csv";
     //char* dt_format = "%d-%d-%dT%d:%d:%d";
     //char* dt_order = "ymd";
     char* dt_format = "%d.%d.%d %d:%d:%d";
@@ -41,8 +41,8 @@ int main() {
     //printf("%f",stack.indicators[0].vals[15]);
     
     print_stack(stack);
+    write_csv(stack, out_path);
     //free_stack(stack);
-
-
+  
     return 0;
 }

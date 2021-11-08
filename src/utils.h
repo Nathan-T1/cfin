@@ -3,6 +3,7 @@
 
 void remove_NL_Char(char *ptr);
 void free_char_array(char** arr, int size);
+void append(char* s, char c);
 
 int file_size(FILE *fp);
 

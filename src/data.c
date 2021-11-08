@@ -219,22 +219,43 @@ int write_csv(struct Stack_ Stack, char* file){
         fprintf(stderr, "Error: Error writing to file");
         return 0;
     }
-    char* headers = (char*) malloc(100 * sizeof(char));
+    char* headers = (char*) calloc(250,sizeof(char));
     int idx = 0;
     int jdx = 0;
     stpcpy(headers, Stack.headers[idx]);
     strcat(headers, ",");
     idx++;
     while(idx < m){
-        strcat(headers, Stack.headers[idx]);
-        strcat(headers,",");
+        char header[20];
+        stpcpy(header, Stack.headers[idx]);
+        if(idx == m-1){
+            header[strlen(header)-1]='\0'; 
+        }  
+        strcat(headers, header);
+        if(idx < m - 1 || (idx == m - 1 && Stack.ind_count)){
+            strcat(headers, ",");
+        }
         idx++;
-        if(idx == m){
+        if(idx == m && !Stack.ind_count){
             strcat(headers, "\n");
+        }
+
+    }
+    if(Stack.ind_count){
+        for(int i = 0; i < Stack.ind_count; i++){
+            char header[20];
+            stpcpy(header, Stack.indicators[i].name);
+            strcat(headers, header);
+            if(i == Stack.ind_count - 1){
+                strcat(headers, "\n"); 
+            }
+            else{
+                strcat(headers, ",");
+            }
         }
     }
     fprintf(fptr, "%s", headers);
-    
+    free(headers);
     idx = 0;
     while(idx < n){
         char time[30];
@@ -250,12 +271,30 @@ int write_csv(struct Stack_ Stack, char* file){
                 fprintf(fptr, "%f,", Stack.points[idx][jdx-1]); 
             }
             else{
-                fprintf(fptr, "%f\n", Stack.points[idx][jdx-1]); 
+                if(!Stack.ind_count){
+                    fprintf(fptr, "%f\n", Stack.points[idx][jdx-1]); 
+                }
+                else{
+                    fprintf(fptr, "%f,", Stack.points[idx][jdx-1]); 
+                }
             }
-        }    
+        }   
+        jdx = 0;
+        if(Stack.ind_count){
+            while(jdx < Stack.ind_count){
+                jdx++;
+                fprintf(fptr, "%f,", Stack.indicators[jdx-1].vals[idx]);   
+                if(jdx == Stack.ind_count){
+                    fprintf(fptr,"\n");
+                }
+            }
+        }
+        
         idx++;
     }
+    
     fclose(fptr);
+    return 1;
 }
 void free_indicator(struct Indicator_ indicator){
     free(indicator.vals);
@@ -287,6 +326,7 @@ void print_stack(struct Stack_ Stack){
         printf("%s, ",new_time);
         idx++;
     }
+    
     printf(" \n");
     idx = 0;
     int jdx;
@@ -301,7 +341,7 @@ void print_stack(struct Stack_ Stack){
             printf("%f, ",Stack.points[idx][jdx]);
             jdx++;
         }
-        if(Stack.ind_count > 0){
+        if(Stack.ind_count){
             for(int i = 0; i < Stack.ind_count; i++){
                 printf("%f ", Stack.indicators[i].vals[idx]);
             }
