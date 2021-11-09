@@ -6,6 +6,7 @@
 #include <math.h>
 
 #include "data.h"
+#include "macro.h"
 
 double RSI(double* points, int length);
 struct Indicator_ Backtest_RSI(struct Stack_ stack, int length);
@@ -25,20 +26,20 @@ double MS(double* points, int length){
 }
 
 double RSI(double* points, int length){
-    double sumUp, sumDown, diff;    
+    double sumUp = 0, sumDown = 0, diff = 0;  
     
-    for(int i = 1; i < length; i++){
+    for(int i = 1; i < length+1; i++){
         diff = points[i] - points[i-1];
         if(diff > 0){
             sumUp = sumUp + diff;
         }
         else{
-            sumDown = sumUp - diff;
+            sumDown = sumDown - diff;
         }
     }
-    if(sumUp < 10e-7){return 0;};
-    if(sumDown < 10e-7){return 100;};
-    
+    if(sumUp < 10e-8){return 0;};
+    if(sumDown < 10e-8){return 100;};
+
     double rs = (sumUp/length)/(sumDown/length);
     return 100-(100/(1+rs));
 }
@@ -50,11 +51,11 @@ struct Indicator_ Backtest_RSI(struct Stack_ stack, int lookback){
     int offset = 0;
     
     while(lookback+offset < n-2){
-        double* slice = malloc(lookback*sizeof(double));
+        double* slice = malloc((lookback+1)*sizeof(double));
         for(int i = 0; i <= lookback; i++){
             slice[i] = stack.points[i + offset][3];
-            //printf("%f\n",stack.points[i + offset][3]);
         }
+       
         double RSI_val = RSI(slice, lookback);
         vals[offset + lookback] = RSI_val;
         offset++; 

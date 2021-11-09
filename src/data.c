@@ -6,17 +6,14 @@
 #include <math.h>
 
 #include "utils.h"
-
-#define BUFFER_SIZE 200
-#define HEADER_SIZE 30
+#include "macro.h"
 
 struct Indicator_ {
-    char* name; 
+    char* name;    
     int init;
     int lookback;
     double* vals;
 };
-
 struct Stack_ {
     int init;
     int ind_count;
@@ -25,6 +22,11 @@ struct Stack_ {
     char** headers;
     double** points;   
     struct Indicator_* indicators;
+};
+struct Backtest_{
+    int init;
+    int sources;
+    char** files; 
 };
 
 double get_h(char freq[]);
@@ -189,6 +191,7 @@ struct Stack_ read_csv(char* file, const char* const delim, char* dt_format, cha
         rows++;
         
         if(rows == linesInt){
+            printf("Increaseing memory allocated");
             double** temp = realloc(points, (linesInt + 100)*sizeof(*points));
             struct timeval *temp_tr = realloc(timeArray, (linesInt + 100)*sizeof(struct timeval));
             if(!temp){
@@ -283,16 +286,18 @@ int write_csv(struct Stack_ Stack, char* file){
         if(Stack.ind_count){
             while(jdx < Stack.ind_count){
                 jdx++;
-                fprintf(fptr, "%f,", Stack.indicators[jdx-1].vals[idx]);   
+                if(jdx < Stack.ind_count){
+                    fprintf(fptr, "%f,", Stack.indicators[jdx-1].vals[idx]);  
+                } 
                 if(jdx == Stack.ind_count){
+                    fprintf(fptr, "%f", Stack.indicators[jdx-1].vals[idx]);  
                     fprintf(fptr,"\n");
                 }
             }
         }
         
         idx++;
-    }
-    
+    } 
     fclose(fptr);
     return 1;
 }
@@ -386,4 +391,3 @@ double get_h(char freq[]){
     }
     return 0;
 }
-

@@ -7,7 +7,6 @@ struct Indicator_ {
     int lookback;
     double* vals;
 };
-
 struct Stack_ {
     int init;
     int ind_count;
@@ -17,7 +16,11 @@ struct Stack_ {
     double** points;   
     struct Indicator_* indicators;
 };
-
+struct Backtest_{
+    int init;
+    int sources;
+    char** files; 
+};
 
 void print_stack(struct Stack_ Stack);
 struct Stack_ resample_stack(struct Stack_ stack, char freq[]);

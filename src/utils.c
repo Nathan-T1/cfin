@@ -2,11 +2,68 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdbool.h>
 
 #include "data.h"
+#include "macro.h"
 
-#define END_DT 19
-#define USEC_ERROR .000001
+void remove_NL_Char(char *ptr);
+
+int def_parser(char* file){
+    FILE* fp = NULL;
+    char* buffer = NULL;
+    const char* const delim = "|"; 
+    int id;
+    int sdx = 0;
+    
+    if((fp = fopen(file, "r")) == NULL){
+        fprintf(stderr, "Error: File does not exist");
+        return 0;
+    }
+    if(!(buffer = (char*)calloc(BUFFER_SIZE, sizeof(char)))){
+        fprintf(stderr, "Error: Error allocating buffer");
+        return 0;
+    }
+    struct Backtest_ backtest;
+    while(feof(fp) != true){
+        fgets(buffer, BUFFER_SIZE, fp);
+        remove_NL_Char(buffer);
+        char *token = strtok(buffer, delim);
+        id = atoi(token);
+        switch(id){
+            case 0:
+                token = strtok(NULL,delim);
+                if(!strcmp(token,"BACKTEST")){
+                    token = strtok(NULL,delim);
+                    backtest.sources = atoi(token);
+                    backtest.files = (char**) calloc(1,sizeof(char*));
+                    backtest.init = 1;
+                    break;
+                }
+                else{
+                    fprintf(stderr, "Invalid def specifier");
+                    return 0;
+                }
+            case 1:
+                token = strtok(NULL,delim);
+                if(backtest.init){
+                    size_t length = strlen(token);
+                    backtest.files[sdx] = (char*)calloc(length, sizeof(char));
+                    strcpy(backtest.files[sdx], token);
+                    sdx++;
+                }
+                else{
+                    fprintf(stderr, "def not initalized");
+                    return 0;
+                }
+                
+        }
+    }
+    free(buffer);
+    if(fp) fclose(fp);
+    printf("Parser pass");
+    return 1;
+};
 
 struct timeval double_to_tv(double tvDouble){
     int tv_sec = (int) tvDouble;
