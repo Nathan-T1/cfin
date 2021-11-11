@@ -36,7 +36,12 @@ int def_parser(char* file){
                 if(!strcmp(token,"BACKTEST")){
                     token = strtok(NULL,delim);
                     backtest.sources = atoi(token);
-                    backtest.files = (char**) calloc(1,sizeof(char*));
+                    if(atoi(token) <= 0){
+                        fprintf(stderr, "Invalid source count");
+                    }
+                    else{
+                        backtest.files = (char**) calloc(1,sizeof(char*));
+                    }
                     backtest.init = 1;
                     break;
                 }
@@ -50,8 +55,33 @@ int def_parser(char* file){
                     size_t length = strlen(token);
                     backtest.files[sdx] = (char*)calloc(length, sizeof(char));
                     strcpy(backtest.files[sdx], token);
+
+                    token = strtok(NULL,delim);
+                    const char* const file_delim = token;
+                    
+                    token = strtok(NULL,delim);
+                    char* dt_format = token;
+                    
+                    token = strtok(NULL,delim);
+                    char* dt_order = token;
+                    
+                    struct Stack_ stack;
+                    stack = read_csv(backtest.files[sdx], file_delim, dt_format, dt_order);
+                    if(stack.init != 1){
+                         fprintf(stderr, "Failed to initalize stack\n");
+                         return 0;
+                    }
+                    if(sdx == 0){
+                        struct Stack_* stacks = malloc(sizeof(struct Stack_));
+                        stacks[sdx] = stack;
+                        backtest.stacks = stacks;
+                    }
+                    else{
+                        struct Stack_* stacks = realloc(stacks,(sdx+1)*sizeof(struct Stack_));
+                        stacks[sdx] = stack;
+                    }
                     sdx++;
-                }
+                }            
                 else{
                     fprintf(stderr, "def not initalized");
                     return 0;

@@ -27,11 +27,55 @@ struct Backtest_{
     int init;
     int sources;
     char** files; 
+    struct Stack_* stacks;
 };
 
 double get_h(char freq[]);
 void print_stack(struct Stack_ Stack);
 
+int get_idx(struct Stack_ stack, const char* col ,int indicator){
+    if(!indicator){
+        for(int i = 1; i < stack.columns - 1; i++){
+            const char* header = stack.headers[i];
+            int result= strcmp(col, header);
+            if(result == 0){
+                return i-1;
+            }
+        }   
+    }
+    if(indicator == 1){
+        for(int i = 1; i < stack.ind_count; i++){
+            const char* header = stack.indicators[i].name;
+            int result= strcmp(col, header);
+            if(result == 0){
+                return i;
+            }
+        }
+    }
+    fprintf(stderr, "Failed to find column passed");
+    return 0;
+}
+int add_indicator(struct Stack_* stack, struct Indicator_ indicator){
+    if(stack->ind_count == 0){
+        struct Indicator_* indicators = malloc(sizeof(struct Indicator_));
+        indicators[stack->ind_count] = indicator;
+        stack->indicators = indicators;
+        stack->ind_count++;
+        return 1;
+    }
+    else if (stack->ind_count >= 1){
+        stack->ind_count++;
+        struct Indicator_* indicators = stack->indicators;
+        struct Indicator_* temp = realloc(indicators, (stack->ind_count)*sizeof(struct Indicator_));
+        if(!temp){
+            fprintf(stderr,"Error: Error reallocting memory");
+            return 0;
+        }
+        stack->indicators = temp;
+        stack->indicators[stack->ind_count] = indicator;
+        return 1;
+    }
+}
 struct Stack_ resample_stack(struct Stack_ stack, char freq[]){
     double **rs_points = NULL;
     struct timeval *rs_timeArray = NULL;
@@ -128,10 +172,13 @@ struct Stack_ read_csv(char* file, const char* const delim, char* dt_format, cha
     FILE* fp = NULL;
     char* buffer = NULL;
     double** points = NULL;
-    struct timeval *timeArray = NULL;
+    
     int columns = 0; 
     int rows = 0;
+    
+    struct timeval *timeArray = NULL;
     struct Stack_ Stack;
+    struct timeval tm;
     memset(&Stack, 0, sizeof(struct Stack_));
     
     char **headers = (char**) calloc(1, sizeof(char*));
@@ -174,7 +221,6 @@ struct Stack_ read_csv(char* file, const char* const delim, char* dt_format, cha
         points[rows] = (double*)malloc((columns-1) * sizeof(double));
         
         char* token = strtok(buffer, delim);
-        struct timeval tm;
         tm = string_to_timeval(token, dt_format, dt_order);
         if(tm.tv_sec == 0){
             return Stack;
@@ -314,7 +360,6 @@ void free_stack(struct Stack_ Stack){
     
     if(Stack.ind_count > 0){
         for(int i = 0; i < Stack.ind_count; i++){
-            printf("%i \n",i);
             free_indicator(Stack.indicators[i]);
         }
         free(Stack.indicators);

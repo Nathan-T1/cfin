@@ -1,5 +1,5 @@
 0|BACKTEST|1
-1|C:\Users\bktor\Desktop\C++\cfin\data\EURUSD_Candlestick_1_M_BID_24.10.2021-29.10.2021.csv
-2|1|RSI
+1|C:\Users\bktor\Desktop\C++\cfin\data\EURUSD_Candlestick_1_M_BID_24.10.2021-29.10.2021.csv|,|%d.%d.%d %d:%d:%d|dmy
+2|RSI|4|14
 3|RSI<30
 4|RSI>70
