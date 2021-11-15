@@ -6,6 +6,7 @@
 
 #define END_DT 19
 #define USEC_ERROR .000001
+#define MICRO_SECONDS 1000000
 
 #define NY_OPEN_HOUR 13
 #define NY_CLOSE_HOUR 21

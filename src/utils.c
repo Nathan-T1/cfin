@@ -3,11 +3,21 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 #include "data.h"
+#include "calc.h"
 #include "macro.h"
 
-void remove_NL_Char(char *ptr);
+void remove_NL_Char(char* ptr);
+bool isNum(const char* str);
+int handle_indicator(struct Stack_* stack, char* line, const char* const delim);
+int handle_entry(char* line, const char* const delim);
+
+bool gt(double a, double b);
+bool gte(double a, double b);
+bool lt(double a, double b);
+bool lte(double a, double b);
 
 int def_parser(char* file){
     FILE* fp = NULL;
@@ -28,7 +38,13 @@ int def_parser(char* file){
     while(feof(fp) != true){
         fgets(buffer, BUFFER_SIZE, fp);
         remove_NL_Char(buffer);
+        
+        char* line = (char*)calloc(BUFFER_SIZE, sizeof(char));
+        stpcpy(line, buffer);
+        line = line + 2;
+        
         char *token = strtok(buffer, delim);
+        int line_success = 0;
         id = atoi(token);
         switch(id){
             case 0:
@@ -40,7 +56,7 @@ int def_parser(char* file){
                         fprintf(stderr, "Invalid source count");
                     }
                     else{
-                        backtest.files = (char**) calloc(1,sizeof(char*));
+                        backtest.files = (char**) calloc(atoi(token),sizeof(char*));
                     }
                     backtest.init = 1;
                     break;
@@ -49,6 +65,7 @@ int def_parser(char* file){
                     fprintf(stderr, "Invalid def specifier");
                     return 0;
                 }
+                break;
             case 1:
                 token = strtok(NULL,delim);
                 if(backtest.init){
@@ -77,8 +94,13 @@ int def_parser(char* file){
                         backtest.stacks = stacks;
                     }
                     else{
-                        struct Stack_* stacks = realloc(stacks,(sdx+1)*sizeof(struct Stack_));
-                        stacks[sdx] = stack;
+                        struct Stack_* tmp = realloc(backtest.stacks,(sdx+1)*sizeof(struct Stack_));
+                        if(!tmp){
+                            fprintf(stderr,"Failed to resize stacks");
+                            return 0;
+                        }
+                        backtest.stacks = tmp;
+                        backtest.stacks[sdx] = stack;
                     }
                     sdx++;
                 }            
@@ -86,14 +108,97 @@ int def_parser(char* file){
                     fprintf(stderr, "def not initalized");
                     return 0;
                 }
+                break;
+            case 2:
+                line_success = handle_indicator(&backtest.stacks[sdx-1],line, delim);
+                if(line_success){
+                    printf("%f\n",backtest.stacks[sdx-1].indicators[0].vals[14]);
+                }
+                break;
+            case 3:
+                line_success = handle_entry(line,delim);
                 
+                
+            
         }
+        free(line);
     }
     free(buffer);
     if(fp) fclose(fp);
     printf("Parser pass");
     return 1;
 };
+int handle_entry(char* line, const char* const delim){
+    remove_NL_Char(line);
+    char* token = strtok(line,delim);
+    struct Condition_ condition; 
+    
+    bool isNumber = isNum(token);
+    if(!isNumber){
+        condition.col_a = token;
+    }
+    else{
+        condition.c = atof(token);
+        condition.c_pos = 0;
+    }
+    
+    token = strtok(NULL,delim);
+    bool(*comp)(const double, const double);
+    if(!strcmp(token,"<")){
+        comp = &lt;
+    }
+    else if(!strcmp(token,">")){
+        comp = &gt;
+    }
+    else if(!strcmp(token,"<=")){
+        comp = &lte;
+    }
+    else if(!strcmp(token,">=")){
+        comp = &gte;
+    }
+    condition.comp = comp;
+    
+    token = strtok(NULL,delim);
+    isNumber = isNum(token);
+    if(!isNumber){
+        condition.col_b = token;
+    }
+    else{
+        condition.c = atof(token);
+        condition.c_pos = 1;
+    }
+    
+    bool ret = condition.comp(1.1,1.01);
+    printf("%f\n",condition.c);
+    
+    
+    return 1;
+}
+
+int handle_indicator(struct Stack_* stack, char* line, const char* const delim){
+    char* token = strtok(line, delim);
+    struct Indicator_ indicator;
+    int ret = 0;
+    while(token){
+        if(!strcmp(token,"RSI")){
+            token = strtok(NULL,delim);
+            int is_calc = atoi(token);
+            if(!is_calc){
+                token = strtok(NULL,delim);
+                int col = get_idx(stack, token , 0);
+                int lookback = atoi(strtok(NULL,delim));
+                indicator = Backtest_RSI(stack, lookback,col);
+                
+                ret = add_indicator(stack,indicator);
+                if(ret){
+                    return ret;
+                }
+            }
+        }
+        token = strtok(NULL,delim); 
+    }
+    return 0;
+}
 
 struct timeval double_to_tv(double tvDouble){
     int tv_sec = (int) tvDouble;
@@ -102,7 +207,7 @@ struct timeval double_to_tv(double tvDouble){
     struct timeval tv;
     tv.tv_sec = tv_sec;
     if(tv_usecD > USEC_ERROR){
-        int tv_usec = (int) tv_usecD * 1000000;
+        int tv_usec = (int) tv_usecD * MICRO_SECONDS;
         tv.tv_usec = tv_usec;
     }
     else{
@@ -116,7 +221,7 @@ double timeval_to_double(struct timeval tv){
     int tv_sec = tv.tv_sec;
     int tv_usec = tv.tv_usec;
     
-    float usec = (float) tv_usec / 1000000;
+    float usec = (float) tv_usec / MICRO_SECONDS;
     ret = (double) tv_sec + usec;
     
     return ret;
@@ -142,7 +247,7 @@ char *timeval_to_string(struct timeval tv){
     
     
      if(tv_usec != 0){
-        float usec = (float) tv_usec / 1000000;
+        float usec = (float) tv_usec / MICRO_SECONDS;
 
         int len = snprintf(NULL, 0, "%f", usec);
         char *result = (char *)malloc(len + 1);
@@ -198,7 +303,7 @@ struct timeval string_to_timeval(char *time, char* format, char* dt_order){
     tv_usec[idx] = '\0';
     strncpy(tv_usec, time+END_DT, idx);
     
-    double usec = atof(tv_usec) * 1000000;    
+    double usec = atof(tv_usec) * MICRO_SECONDS;    
     tv.tv_usec = usec;
 
     if(tv.tv_sec != 0){
@@ -213,16 +318,24 @@ fail:
     fprintf(stderr, "Function failed: string_to_timeval\n");
     return tv;
 }
+bool isNum(const char* str){
+    const int str_length = strlen(str);
+    for(int i = 0; i < str_length; i++){
+        if(!isdigit(*str)){
+            return false;
+        }
+        str++;
+    }
+    return true;
+}
 void append(char* s, char c){
         int len = strlen(s);
         s[len] = c;
         s[len+1] = '\0';
 }
 void remove_NL_Char(char *ptr){
-    while((ptr != NULL) && (*ptr != '\n')){
-        ++ptr;
-    }
-    *ptr = '\0';
+    const int str_length = strlen(ptr);
+    ptr[str_length-1] = '\0';
 }
 void free_char_array(char** arr, int size){
     for(size_t i = 0; i < size; i++){
@@ -236,6 +349,34 @@ int file_size(FILE *fp){
     int size = ftell(fp);
     fseek(fp,start, SEEK_SET);
     return size;
+}
+bool gt(double a, double b){
+    bool ret = false; 
+    if(a > b){
+        ret = true;
+    }
+    return ret;
+}
+bool lt(double a, double b){
+    bool ret = false; 
+    if(a < b){
+        ret = true;
+    }
+    return ret;
+}
+bool lte(double a, double b){
+    bool ret = false; 
+    if(a <= b){
+        ret = true;
+    }
+    return ret;
+}
+bool gte(double a, double b){
+    bool ret = false; 
+    if(a >= b){
+        ret = true;
+    }
+    return ret;
 }
 
 

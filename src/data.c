@@ -23,20 +23,33 @@ struct Stack_ {
     double** points;   
     struct Indicator_* indicators;
 };
+struct Condition_ {
+    int is_ind_a;
+    int is_ind_b;
+    int c_pos;
+    bool(*comp)(const double, const double);
+    char* col_a;
+    char* col_b;
+    double c; 
+};
 struct Backtest_{
     int init;
     int sources;
     char** files; 
     struct Stack_* stacks;
+    
+    struct Condition_** entries; 
+    struct Condition_** exits; 
+    
 };
 
 double get_h(char freq[]);
 void print_stack(struct Stack_ Stack);
 
-int get_idx(struct Stack_ stack, const char* col ,int indicator){
+int get_idx(struct Stack_* stack, const char* col ,int indicator){
     if(!indicator){
-        for(int i = 1; i < stack.columns - 1; i++){
-            const char* header = stack.headers[i];
+        for(int i = 1; i < stack->columns - 1; i++){
+            const char* header = stack->headers[i];
             int result= strcmp(col, header);
             if(result == 0){
                 return i-1;
@@ -44,8 +57,8 @@ int get_idx(struct Stack_ stack, const char* col ,int indicator){
         }   
     }
     if(indicator == 1){
-        for(int i = 1; i < stack.ind_count; i++){
-            const char* header = stack.indicators[i].name;
+        for(int i = 1; i < stack->ind_count; i++){
+            const char* header = stack->indicators[i].name;
             int result= strcmp(col, header);
             if(result == 0){
                 return i;
@@ -53,11 +66,14 @@ int get_idx(struct Stack_ stack, const char* col ,int indicator){
         }
     }
     fprintf(stderr, "Failed to find column passed");
-    return 0;
+    return -1;
 }
 int add_indicator(struct Stack_* stack, struct Indicator_ indicator){
     if(stack->ind_count == 0){
         struct Indicator_* indicators = malloc(sizeof(struct Indicator_));
+        if(!indicators){
+            return 0;
+        }
         indicators[stack->ind_count] = indicator;
         stack->indicators = indicators;
         stack->ind_count++;

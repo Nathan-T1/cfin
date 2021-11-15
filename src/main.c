@@ -10,7 +10,7 @@
 #include "macro.h"
 
 void test(){
-    //int a = def_parser("DEF.txt");
+    
     char* path = "../data/EURUSD_Candlestick_1_M_BID_24.10.2021-29.10.2021.csv";
     char* out_path = "../data/EURUSD_Candlestick_1_M_BID_24.10.2021-29.10.2021_out.csv";
 
@@ -26,7 +26,7 @@ void test(){
     stack = read_csv(path, s, dt_format, dt_order);
     print_stack(stack);
     
-    struct Indicator_ ind = Backtest_RSI(stack, 14);
+    struct Indicator_ ind = Backtest_RSI(&stack, 14, 3);
     add_indicator(&stack,ind);
     printf("ind_count: %i\n",stack.ind_count);
     print_stack(stack);
@@ -36,11 +36,29 @@ void test(){
     
     free_stack(stack);
 }
+void testP(){
+    int a = def_parser("DEF.txt");
+}
+void test2(){
+    const double a = 1.2;
+    const double c = 1.2;
+    
+    bool(*comp)(double,double) = &gte;
+
+    bool ret = (*comp)(a,c);
+    if(ret){
+        printf("Greater than");
+    }
+    else{
+        printf("Less Than");
+    }
+    
+}
 
 int main() {
     clock_t start, end;
     start = clock();
-    test();
+    testP();
     end = clock();
     double cpu_time_used = ((double) (end-start)) / CLOCKS_PER_SEC;
     printf("\n Read csv took %f seconds to execute \n", cpu_time_used);

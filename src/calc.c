@@ -8,8 +8,7 @@
 #include "data.h"
 #include "macro.h"
 
-double RSI(double* points, int length);
-struct Indicator_ Backtest_RSI(struct Stack_ stack, int length);
+
 
 double MS(double* points, int length){
     double MA;
@@ -25,7 +24,7 @@ double MS(double* points, int length){
     return MA;
 }
 
-double RSI(double* points, int length){
+static double RSI(double* points, int length){
     double sumUp = 0, sumDown = 0, diff = 0;  
     
     for(int i = 1; i < length+1; i++){
@@ -43,8 +42,8 @@ double RSI(double* points, int length){
     double rs = (sumUp/length)/(sumDown/length);
     return 100-(100/(1+rs));
 }
-struct Indicator_ Backtest_RSI(struct Stack_ stack, int lookback){
-    int n = stack.rows;
+struct Indicator_ Backtest_RSI(struct Stack_* stack, int lookback, int col){
+    int n = stack->rows;
     int ind_size = (n - 1);
     double* vals = calloc(ind_size,sizeof(double));
     struct Indicator_ indicator;
@@ -53,7 +52,7 @@ struct Indicator_ Backtest_RSI(struct Stack_ stack, int lookback){
     while(lookback+offset < n-2){
         double* slice = malloc((lookback+1)*sizeof(double));
         for(int i = 0; i <= lookback; i++){
-            slice[i] = stack.points[i + offset][3];
+            slice[i] = stack->points[i + offset][col];
         }
        
         double RSI_val = RSI(slice, lookback);

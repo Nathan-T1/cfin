@@ -14,5 +14,8 @@ char *timeval_to_string(struct timeval tv);
 double timeval_to_double(struct timeval tv);
 struct timeval double_to_tv(double tvDouble);
 
-
+bool gt(double a, double b);
+bool lt(double a, double b);
+bool lte(double a, double b);
+bool gte(double a, double b);
 #endif
