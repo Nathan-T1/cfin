@@ -12,14 +12,14 @@
 void remove_NL_Char(char* ptr);
 bool isNum(const char* str);
 int handle_indicator(struct Stack_* stack, char* line, const char* const delim);
-int handle_entry(char* line, const char* const delim);
+int handle_condition(struct Stack_* stack, char* line, const char* const delim, int side);
 
 bool gt(double a, double b);
 bool gte(double a, double b);
 bool lt(double a, double b);
 bool lte(double a, double b);
 
-int def_parser(char* file){
+int def_parser(const char* const file){
     FILE* fp = NULL;
     char* buffer = NULL;
     const char* const delim = "|"; 
@@ -42,7 +42,7 @@ int def_parser(char* file){
         char* line = (char*)calloc(BUFFER_SIZE, sizeof(char));
         stpcpy(line, buffer);
         line = line + 2;
-        
+      
         char *token = strtok(buffer, delim);
         int line_success = 0;
         id = atoi(token);
@@ -110,36 +110,37 @@ int def_parser(char* file){
                 }
                 break;
             case 2:
-                line_success = handle_indicator(&backtest.stacks[sdx-1],line, delim);
-                if(line_success){
-                    printf("%f\n",backtest.stacks[sdx-1].indicators[0].vals[14]);
-                }
+                line_success = handle_indicator(&backtest.stacks[sdx-1],line,delim);
                 break;
             case 3:
-                line_success = handle_entry(line,delim);
-                
+                line_success = handle_condition(&backtest.stacks[sdx-1],line,delim,1);
+                break;
+            case 4:
+                line_success = handle_condition(&backtest.stacks[sdx-1],line,delim,-1);
+                break;
                 
             
         }
         free(line);
     }
+    printf("entry %f \n", backtest.stacks[0].entries[0].c);
+    printf("exit %f \n", backtest.stacks[0].exits[0].c);
     free(buffer);
     if(fp) fclose(fp);
     printf("Parser pass");
     return 1;
 };
-int handle_entry(char* line, const char* const delim){
-    remove_NL_Char(line);
+int handle_condition(struct Stack_* stack, char* line, const char* const delim, int side){
     char* token = strtok(line,delim);
     struct Condition_ condition; 
-    
+
     bool isNumber = isNum(token);
     if(!isNumber){
         condition.col_a = token;
     }
     else{
         condition.c = atof(token);
-        condition.c_pos = 0;
+        condition.c_pos = 1;
     }
     
     token = strtok(NULL,delim);
@@ -165,13 +166,13 @@ int handle_entry(char* line, const char* const delim){
     }
     else{
         condition.c = atof(token);
-        condition.c_pos = 1;
+        condition.c_pos = 2;
     }
-    
-    bool ret = condition.comp(1.1,1.01);
-    printf("%f\n",condition.c);
-    
-    
+    int success = add_condition(stack,condition, side);s
+    if(!success){
+        fprintf(stderr, "Error: add_condition failed");
+        return 0;
+    }
     return 1;
 }
 
@@ -320,8 +321,8 @@ fail:
 }
 bool isNum(const char* str){
     const int str_length = strlen(str);
-    for(int i = 0; i < str_length; i++){
-        if(!isdigit(*str)){
+    for(int i = 0; i < str_length-1; i++){
+        if(!isdigit(*str) && *str){
             return false;
         }
         str++;
@@ -334,8 +335,9 @@ void append(char* s, char c){
         s[len+1] = '\0';
 }
 void remove_NL_Char(char *ptr){
-    const int str_length = strlen(ptr);
-    ptr[str_length-1] = '\0';
+    size_t ln = strlen(ptr) - 1;
+    if (*ptr && ptr[ln] == '\n') 
+        ptr[ln] = '\0';
 }
 void free_char_array(char** arr, int size){
     for(size_t i = 0; i < size; i++){

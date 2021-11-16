@@ -36,29 +36,15 @@ void test(){
     
     free_stack(stack);
 }
-void testP(){
-    int a = def_parser("DEF.txt");
-}
-void test2(){
-    const double a = 1.2;
-    const double c = 1.2;
-    
-    bool(*comp)(double,double) = &gte;
 
-    bool ret = (*comp)(a,c);
-    if(ret){
-        printf("Greater than");
-    }
-    else{
-        printf("Less Than");
-    }
-    
+void testC(){
+    int a = def_parser("DEF.txt");
 }
 
 int main() {
     clock_t start, end;
     start = clock();
-    testP();
+    testC();
     end = clock();
     double cpu_time_used = ((double) (end-start)) / CLOCKS_PER_SEC;
     printf("\n Read csv took %f seconds to execute \n", cpu_time_used);

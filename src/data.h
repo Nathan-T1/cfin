@@ -10,12 +10,18 @@ struct Indicator_ {
 struct Stack_ {
     int init;
     int ind_count;
+    int entry_count;
+    int exit_count;
+    
     struct timeval *timeArray;
     int rows, columns;
     
     char** headers;
     double** points;   
     struct Indicator_* indicators;
+    
+    struct Condition_* entries; 
+    struct Condition_* exits; 
 };
 struct Condition_ {
     int is_ind_a;
@@ -31,9 +37,7 @@ struct Backtest_{
     int sources;
     char** files; 
     struct Stack_* stacks;
-    
-    struct Condition_** entries; 
-    struct Condition_** exits; 
+   
 };
 
 void print_stack(struct Stack_ Stack);
@@ -44,5 +48,6 @@ int write_csv(struct Stack_ Stack, char* file);
 
 int get_idx(struct Stack_* stack, const char* col, int indicator);
 int add_indicator(struct Stack_* stack, struct Indicator_ indicator);
+int add_condition(struct Stack_* stack, struct Condition_ condition, int side);
 
 #endif

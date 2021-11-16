@@ -14,15 +14,6 @@ struct Indicator_ {
     int lookback;
     double* vals;
 };
-struct Stack_ {
-    int init;
-    int ind_count;
-    struct timeval *timeArray;
-    int rows, columns; 
-    char** headers;
-    double** points;   
-    struct Indicator_* indicators;
-};
 struct Condition_ {
     int is_ind_a;
     int is_ind_b;
@@ -32,14 +23,26 @@ struct Condition_ {
     char* col_b;
     double c; 
 };
+struct Stack_ {
+    int init;
+    int ind_count;
+    int entry_count;
+    int exit_count;
+    
+    struct timeval *timeArray;
+    int rows, columns; 
+    char** headers;
+    double** points;   
+    struct Indicator_* indicators;
+    
+    struct Condition_* entries; 
+    struct Condition_* exits; 
+};
 struct Backtest_{
     int init;
     int sources;
     char** files; 
     struct Stack_* stacks;
-    
-    struct Condition_** entries; 
-    struct Condition_** exits; 
     
 };
 
@@ -72,6 +75,7 @@ int add_indicator(struct Stack_* stack, struct Indicator_ indicator){
     if(stack->ind_count == 0){
         struct Indicator_* indicators = malloc(sizeof(struct Indicator_));
         if(!indicators){
+            fprintf(stderr,"Error: Error allocting indicator memory");
             return 0;
         }
         indicators[stack->ind_count] = indicator;
@@ -84,13 +88,71 @@ int add_indicator(struct Stack_* stack, struct Indicator_ indicator){
         struct Indicator_* indicators = stack->indicators;
         struct Indicator_* temp = realloc(indicators, (stack->ind_count)*sizeof(struct Indicator_));
         if(!temp){
-            fprintf(stderr,"Error: Error reallocting memory");
+            fprintf(stderr,"Error: Error reallocting indicators memory");
             return 0;
         }
         stack->indicators = temp;
         stack->indicators[stack->ind_count] = indicator;
         return 1;
     }
+}
+int add_condition(struct Stack_* stack, struct Condition_ condition, int side){
+    int comp_count;
+    if(side == -1){
+        comp_count = stack->exit_count;
+    }
+    else if(side == 1){
+        comp_count = stack->entry_count;
+    }
+    else{
+        fprintf(stderr, "Error: Invalid condition side");
+        return 0;
+    }
+    if(comp_count > 0){
+        comp_count++;
+        struct Condition_* conditions;
+        if(side == -1){
+            conditions = stack->exits;
+            stack->exit_count++;
+        }
+        else{
+            conditions = stack->entries;
+            stack->entry_count++;
+        }
+        struct Condition_* temp = realloc(conditions,(comp_count)*sizeof(struct Condition_));
+        if(!temp){
+            fprintf(stderr,"Error: Error reallocting conditions memory");
+            return 0;
+        }
+        if(side == -1){
+            stack->exits = temp;
+            stack->exits[stack->exit_count] = condition;
+        }
+        else{
+            stack->entries = temp;
+            stack->entries[stack->entry_count] = condition;
+        }
+        return 1;
+        
+    }
+    if(comp_count == 0){
+        struct Condition_* conditions = malloc(sizeof(struct Condition_));
+        if(!conditions){
+            fprintf(stderr, "Failed to allocate condition memory");
+            return 0;
+        }
+        conditions[comp_count] = condition;
+        if(side == -1){
+            stack->exits = conditions;
+            stack->exit_count++;
+        }
+        else{
+            stack->entries = conditions;
+            stack->entry_count++;
+        }
+        return 1;
+    }
+    return 0;
 }
 struct Stack_ resample_stack(struct Stack_ stack, char freq[]){
     double **rs_points = NULL;
