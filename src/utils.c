@@ -13,28 +13,30 @@ void remove_NL_Char(char* ptr);
 bool isNum(const char* str);
 int handle_indicator(struct Stack_* stack, char* line, const char* const delim);
 int handle_condition(struct Stack_* stack, char* line, const char* const delim, int side);
+struct Portfolio_ handle_portfolio(char* line, const char* const delim);
 
 bool gt(double a, double b);
 bool gte(double a, double b);
 bool lt(double a, double b);
 bool lte(double a, double b);
 
-int def_parser(const char* const file){
+struct Backtest_ def_parser(const char* const file){
     FILE* fp = NULL;
     char* buffer = NULL;
     const char* const delim = "|"; 
     int id;
     int sdx = 0;
     
+    struct Backtest_ backtest;
+    struct Portfolio_ portfolio;
     if((fp = fopen(file, "r")) == NULL){
         fprintf(stderr, "Error: File does not exist");
-        return 0;
+        return backtest;
     }
     if(!(buffer = (char*)calloc(BUFFER_SIZE, sizeof(char)))){
         fprintf(stderr, "Error: Error allocating buffer");
-        return 0;
+        return backtest;
     }
-    struct Backtest_ backtest;
     while(feof(fp) != true){
         fgets(buffer, BUFFER_SIZE, fp);
         remove_NL_Char(buffer);
@@ -54,6 +56,7 @@ int def_parser(const char* const file){
                     backtest.sources = atoi(token);
                     if(atoi(token) <= 0){
                         fprintf(stderr, "Invalid source count");
+                        return backtest;
                     }
                     else{
                         backtest.files = (char**) calloc(atoi(token),sizeof(char*));
@@ -63,7 +66,7 @@ int def_parser(const char* const file){
                 }
                 else{
                     fprintf(stderr, "Invalid def specifier");
-                    return 0;
+                    return backtest;
                 }
                 break;
             case 1:
@@ -72,7 +75,12 @@ int def_parser(const char* const file){
                     size_t length = strlen(token);
                     backtest.files[sdx] = (char*)calloc(length, sizeof(char));
                     strcpy(backtest.files[sdx], token);
-
+                    
+                    token = strtok(NULL,delim);
+                    length = strlen(token);
+                    char* instrument = (char*)calloc(length, sizeof(char));
+                    strcpy(instrument,token);
+                    
                     token = strtok(NULL,delim);
                     const char* const file_delim = token;
                     
@@ -81,12 +89,15 @@ int def_parser(const char* const file){
                     
                     token = strtok(NULL,delim);
                     char* dt_order = token;
+                    length = strlen(dt_order);
+                    dt_order[length-1] = '\0';
                     
                     struct Stack_ stack;
                     stack = read_csv(backtest.files[sdx], file_delim, dt_format, dt_order);
+                    stack.instrument = instrument;
                     if(stack.init != 1){
                          fprintf(stderr, "Failed to initalize stack\n");
-                         return 0;
+                         return backtest;
                     }
                     if(sdx == 0){
                         struct Stack_* stacks = malloc(sizeof(struct Stack_));
@@ -97,7 +108,7 @@ int def_parser(const char* const file){
                         struct Stack_* tmp = realloc(backtest.stacks,(sdx+1)*sizeof(struct Stack_));
                         if(!tmp){
                             fprintf(stderr,"Failed to resize stacks");
-                            return 0;
+                            return backtest;
                         }
                         backtest.stacks = tmp;
                         backtest.stacks[sdx] = stack;
@@ -106,10 +117,11 @@ int def_parser(const char* const file){
                 }            
                 else{
                     fprintf(stderr, "def not initalized");
-                    return 0;
+                    return backtest;
                 }
                 break;
             case 2:
+                break;
                 line_success = handle_indicator(&backtest.stacks[sdx-1],line,delim);
                 break;
             case 3:
@@ -118,18 +130,52 @@ int def_parser(const char* const file){
             case 4:
                 line_success = handle_condition(&backtest.stacks[sdx-1],line,delim,-1);
                 break;
-                
-            
+            case 99:
+                portfolio = handle_portfolio(line,delim);
+                break;
+ 
         }
         free(line);
     }
-    printf("entry %f \n", backtest.stacks[0].entries[0].c);
-    printf("exit %f \n", backtest.stacks[0].exits[0].c);
     free(buffer);
     if(fp) fclose(fp);
-    printf("Parser pass");
-    return 1;
+    
+    if(portfolio.init != 1){
+        fprintf(stderr, "Error: Portolio failed to initalize");
+        return backtest;
+    }
+    else{
+        backtest.portfolio = portfolio;
+    }
+    backtest.init = 1;
+    return backtest;
 };
+struct Portfolio_ handle_portfolio(char* line, const char* const delim){
+    struct Portfolio_ portfolio;
+    memset(&portfolio, 0, sizeof(struct Portfolio_));
+    char* token = strtok(line,delim);
+    
+    bool isNumber = isNum(token);
+    if(!isNumber){
+        fprintf(stderr,"Error: Invalid starting cash");
+        return portfolio;
+    }
+    else{
+        portfolio.cash = atof(token);
+    }
+    token = strtok(NULL,delim);
+    isNumber = isNum(token);
+    if(!isNumber){
+        fprintf(stderr,"Error: Invalid margin amount");
+        return portfolio;
+    }
+    else{
+        portfolio.leverage = atof(token);
+        portfolio.use_margin = true;
+    }
+    portfolio.init = 1;
+    return portfolio;
+}
 int handle_condition(struct Stack_* stack, char* line, const char* const delim, int side){
     char* token = strtok(line,delim);
     struct Condition_ condition; 
@@ -168,7 +214,7 @@ int handle_condition(struct Stack_* stack, char* line, const char* const delim, 
         condition.c = atof(token);
         condition.c_pos = 2;
     }
-    int success = add_condition(stack,condition, side);s
+    int success = add_condition(stack,condition, side);
     if(!success){
         fprintf(stderr, "Error: add_condition failed");
         return 0;
@@ -277,7 +323,7 @@ struct timeval string_to_timeval(char *time, char* format, char* dt_order){
     else if(strcmp(dt_order, "ymd") == 0){
         sscanf(tv_sec, format, &year,&month,&day,&hour,&min,&sec);
     }
-   
+
     struct tm tm_mid = {0};
     tm_mid.tm_year = year - 1900;
     tm_mid.tm_mon = month - 1;

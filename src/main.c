@@ -3,42 +3,54 @@
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include "data.h"
 #include "utils.h"
 #include "calc.h"
 #include "macro.h"
 
-void test(){
-    
-    char* path = "../data/EURUSD_Candlestick_1_M_BID_24.10.2021-29.10.2021.csv";
-    char* out_path = "../data/EURUSD_Candlestick_1_M_BID_24.10.2021-29.10.2021_out.csv";
+int src_count;
+struct Portfolio_* portfolio;
 
-    char* dt_format = "%d.%d.%d %d:%d:%d";
-    char* dt_order = "dmy";
-    char freq[3] = "S5";
-    const char* const s = ",";
-    clock_t start, end;
-    double cpu_time_used;
+void handle_beat(double* slice, struct Indicator_* indicators, struct Stack_* stack){
+    if(portfolio->position_count > 0){
+        int b = 0;
+    }
+    else if(portfolio->position_count == 0){
+        int a = 0;
+    }
+}
+
+int init_backtest(struct Backtest_* backtest){
+    if(backtest->init != 1){
+        fprintf(stderr, "Error: Backtest not initalized properly");
+        return 0;
+    }
+    src_count = backtest->sources;
+    int row_count = backtest->stacks[0].rows;
+    int col_count = backtest->stacks[0].columns;
+    portfolio = &backtest->portfolio;
     
-    start = clock();
-    struct Stack_ stack;
-    stack = read_csv(path, s, dt_format, dt_order);
-    print_stack(stack);
-    
-    struct Indicator_ ind = Backtest_RSI(&stack, 14, 3);
-    add_indicator(&stack,ind);
-    printf("ind_count: %i\n",stack.ind_count);
-    print_stack(stack);
-    //const char* col = "Close";
-    //int idx = get_idx(stack, col);
-    //printf("%i\n",idx);
-    
-    free_stack(stack);
+    for(int i = 0; i < 10; i++){
+        for(int j = 0; j < src_count; j++){
+            struct Stack_* stack = &backtest->stacks[j];
+            double* slice = stack->points[i]; 
+            struct Indicator_* indicators = stack->indicators;
+            
+            handle_beat(slice, indicators, stack);
+        }
+    }
+  
+    printf("%i\n",col_count);
+    printf("Init trade completed\n");
+    return 1;
 }
 
 void testC(){
-    int a = def_parser("DEF.txt");
+    struct Backtest_ backtest = def_parser("DEF.txt");
+    int success = init_backtest(&backtest);
+    print_stack(backtest.stacks[0]);
 }
 
 int main() {

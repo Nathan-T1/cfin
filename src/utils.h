@@ -1,7 +1,7 @@
 #ifndef _utils_h
 #define _utils_h
 
-int def_parser(char* file);
+struct Backtest_ def_parser(char* file);
 
 void remove_NL_Char(char *ptr);
 void free_char_array(char** arr, int size);

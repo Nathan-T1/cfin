@@ -30,7 +30,8 @@ struct Stack_ {
     int exit_count;
     
     struct timeval *timeArray;
-    int rows, columns; 
+    int rows, columns;
+    char* instrument;    
     char** headers;
     double** points;   
     struct Indicator_* indicators;
@@ -38,11 +39,36 @@ struct Stack_ {
     struct Condition_* entries; 
     struct Condition_* exits; 
 };
+struct Position_{
+    int id;
+    int size;
+    int side;
+    bool is_open;
+    
+    char* instrument;
+    struct timeval entry;
+    struct timeval exit; 
+    
+    double open_price;
+    double close_price;
+};
+struct Portfolio_{
+    int init;
+    int position_count;
+    bool use_margin;
+    
+    double leverage;
+    double nav; 
+    double cash;
+    struct Position_* positions;
+    
+};
 struct Backtest_{
     int init;
     int sources;
     char** files; 
     struct Stack_* stacks;
+    struct Portfolio_ portfolio;
     
 };
 
@@ -432,6 +458,7 @@ void free_stack(struct Stack_ Stack){
     for(int k = 0; k < Stack.rows; k++){
         free(Stack.points[k]);
     }
+    free(Stack.instrument);
     free(Stack.points);
     free(Stack.timeArray);
     free_char_array(Stack.headers, Stack.columns);
